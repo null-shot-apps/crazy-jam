@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type Mood = 'energized' | 'calm' | 'stressed' | 'neutral';
 
@@ -59,6 +60,7 @@ export default function HabitTracker() {
   const [editingTime, setEditingTime] = useState('');
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [dailyFlow, setDailyFlow] = useState(0);
+  const [focusedHabitId, setFocusedHabitId] = useState<string | null>(null);
 
   // Dynamic theme based on overall streak performance
   const avgStreak = habits.reduce((sum, h) => sum + h.streak, 0) / habits.length;
@@ -104,6 +106,8 @@ export default function HabitTracker() {
             icon: '🔥',
             body: `It's time for your ${habit.name}`,
           });
+          // Trigger focus mode
+          setFocusedHabitId(habit.id);
         }
       });
     };
@@ -212,8 +216,17 @@ export default function HabitTracker() {
     return `${hour12}:${minutes} ${ampm}`;
   };
 
+  const handleDismissFocus = () => {
+    setFocusedHabitId(null);
+  };
+
+  const handleCompleteFocus = (habitId: string) => {
+    handleHabitClick(habitId);
+    setFocusedHabitId(null);
+  };
+
   return (
-    <div className={`habit-tracker ${themeClass}`}>
+    <div className={`habit-tracker ${themeClass} ${focusedHabitId ? 'focus-mode' : ''}`}>
       {/* Confetti Animation */}
       {confetti.length > 0 && (
         <div className="confetti-container">
@@ -230,6 +243,53 @@ export default function HabitTracker() {
           ))}
         </div>
       )}
+
+      {/* Focus Mode Overlay */}
+      <AnimatePresence>
+        {focusedHabitId && (
+          <motion.div
+            className="focus-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {habits.map((habit) => {
+              if (habit.id === focusedHabitId) {
+                return (
+                  <motion.div
+                    key={habit.id}
+                    className="focus-card glass-card-sleek"
+                    initial={{ scale: 0.8, y: 50 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.8, y: 50 }}
+                    transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                  >
+                    <h2 className="focus-title">Time to vibe</h2>
+                    <h3 className="focus-habit-name">{habit.name}</h3>
+                    <p className="focus-time">{formatTime(habit.time)}</p>
+                    <div className="focus-actions">
+                      <button
+                        onClick={handleDismissFocus}
+                        className="focus-btn dismiss-btn"
+                      >
+                        Dismiss
+                      </button>
+                      <button
+                        onClick={() => handleCompleteFocus(habit.id)}
+                        className="focus-btn complete-btn"
+                      >
+                        Complete
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              }
+              return null;
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Mood Prompt Modal */}
       {mood === null && (
@@ -272,26 +332,44 @@ export default function HabitTracker() {
 
         {/* Vibe Orb */}
         <div className="vibe-orb-container">
-          <div className={`vibe-orb ${mood} ${dailyFlow > 50 ? 'pulse-fast' : ''}`}>
+          <motion.div
+            className={`vibe-orb ${mood} ${dailyFlow > 50 ? 'pulse-fast' : ''}`}
+            animate={{
+              y: [0, -10, 0],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          >
             <div className="orb-inner"></div>
             <div className="orb-glow"></div>
-          </div>
+          </motion.div>
           <p className="orb-label daily-flow-text">{Math.round(dailyFlow)}% DAILY FLOW</p>
         </div>
 
         {/* Habit Cards */}
         <div className="habits-grid">
-          {habits.map((habit) => {
+          {habits.map((habit, index) => {
             const suggested = getSuggestedHabit(habit);
             const isAlternative = suggested !== habit.name;
             const isEditing = editingHabitId === habit.id;
 
             return (
-              <div 
+              <motion.div 
                 key={habit.id} 
-                className={`habit-card glass-card-sleek ${habit.completed ? 'completed' : ''}`}
+                className={`habit-card glass-card-sleek ${habit.completed ? 'completed' : ''} ${focusedHabitId === habit.id ? 'focused-habit' : ''}`}
                 onClick={() => handleHabitClick(habit.id)}
                 style={{ cursor: 'pointer' }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  type: 'spring',
+                  damping: 20,
+                  stiffness: 300,
+                  delay: index * 0.1,
+                }}
               >
                 <div className="habit-header">
                   <div className="habit-title-section">
@@ -345,7 +423,7 @@ export default function HabitTracker() {
                     style={{ width: `${Math.min(habit.streak * 10, 100)}%` }}
                   />
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
@@ -382,6 +460,14 @@ export default function HabitTracker() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
 
 
 
