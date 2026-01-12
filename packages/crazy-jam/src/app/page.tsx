@@ -13,6 +13,21 @@ type Habit = {
   lastCompleted?: string;
   completed: boolean;
   alternatives?: { [key in Mood]?: string };
+  why?: string;
+  how?: string;
+  quote?: string;
+};
+
+type Theme = {
+  name: string;
+  gradient: string[];
+  cardOpacity: number;
+};
+
+type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
 };
 
 const defaultHabits: Habit[] = [
@@ -53,7 +68,8 @@ export default function HabitTracker() {
   const [habits, setHabits] = useState<Habit[]>(defaultHabits);
   const [mood, setMood] = useState<Mood | null>(null);
   const [chatInput, setChatInput] = useState('');
-  const [chatHistory, setChatHistory] = useState<string[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [userName] = useState('Friend');
   const [confetti, setConfetti] = useState<{ id: number; x: number; y: number }[]>([]);
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
@@ -62,6 +78,12 @@ export default function HabitTracker() {
   const [dailyFlow, setDailyFlow] = useState(0);
   const [focusedHabitId, setFocusedHabitId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<Theme>({
+    name: 'default',
+    gradient: ['#E0C3FC', '#8EC5FC', '#F1F2B5'],
+    cardOpacity: 0.1,
+  });
+  const [reminderTimers, setReminderTimers] = useState<{ [key: string]: NodeJS.Timeout }>({});
 
   // Dynamic theme based on overall streak performance
   const avgStreak = habits.reduce((sum, h) => sum + h.streak, 0) / habits.length;
@@ -147,18 +169,27 @@ export default function HabitTracker() {
     const input = chatInput.trim();
     const inputLower = input.toLowerCase();
     
-    setChatHistory((prev) => [...prev, `You: ${input}`]);
+    const userMessage: ChatMessage = { role: 'user', content: input, timestamp: Date.now() };
+    setChatHistory((prev) => [...prev, userMessage]);
     setChatInput('');
     setIsProcessing(true);
 
     try {
-      // Check for habit management commands
-      if (inputLower.includes('add') && inputLower.includes('habit')) {
+      // Check for theme change commands
+      if (inputLower.includes('dark mode') || inputLower.includes('make it dark')) {
+        await handleThemeChange('dark');
+      } else if (inputLower.includes('sunset') || inputLower.includes('sunset vibe')) {
+        await handleThemeChange('sunset');
+      } else if (inputLower.includes('high energy') || inputLower.includes('energetic')) {
+        await handleThemeChange('energy');
+      } else if (inputLower.includes('calm') || inputLower.includes('peaceful')) {
+        await handleThemeChange('calm');
+      } else if (inputLower.includes('add') && inputLower.includes('habit')) {
         await handleAddHabit(input);
       } else if (inputLower.includes('remove') && inputLower.includes('habit')) {
         await handleRemoveHabit(input);
       } else if (inputLower.includes('schedule') || inputLower.includes('make me')) {
-        await handleScheduleGeneration(input);
+        await handleScheduleGeneration();
       } else {
         // Check for habit completion
         let habitCompleted = false;
@@ -174,26 +205,81 @@ export default function HabitTracker() {
                   : h
               )
             );
-            setChatHistory((prev) => [...prev, `Vibe Coach: 🎉 Amazing! Your ${habit.name} streak is now ${habit.streak + 1} days!`]);
+            const assistantMessage: ChatMessage = {
+              role: 'assistant',
+              content: `🎉 Amazing! Your ${habit.name} streak is now ${habit.streak + 1} days!`,
+              timestamp: Date.now(),
+            };
+            setChatHistory((prev) => [...prev, assistantMessage]);
             habitCompleted = true;
             triggerConfetti();
           }
         });
 
         if (!habitCompleted) {
-          setChatHistory((prev) => [...prev, `Vibe Coach: I can help you add/remove habits or create a schedule. Try: "Add a habit for reading" or "Make me a schedule to be a better person in 2 weeks"`]);
+          const assistantMessage: ChatMessage = {
+            role: 'assistant',
+            content: `I can help you add/remove habits, change themes, or create a schedule. Try: "Add a habit for reading", "Make it dark mode", or "Make me a schedule to be a better person in 2 weeks"`,
+            timestamp: Date.now(),
+          };
+          setChatHistory((prev) => [...prev, assistantMessage]);
         }
       }
     } catch {
-      setChatHistory((prev) => [...prev, `Vibe Coach: Something went wrong. Please try again.`]);
+      const errorMessage: ChatMessage = {
+        role: 'assistant',
+        content: 'Something went wrong. Please try again.',
+        timestamp: Date.now(),
+      };
+      setChatHistory((prev) => [...prev, errorMessage]);
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const handleThemeChange = async (themeName: string) => {
+    const themes: { [key: string]: Theme } = {
+      dark: {
+        name: 'dark',
+        gradient: ['#1a1a2e', '#16213e', '#0f3460'],
+        cardOpacity: 0.2,
+      },
+      sunset: {
+        name: 'sunset',
+        gradient: ['#ff6b6b', '#ee5a6f', '#c44569'],
+        cardOpacity: 0.15,
+      },
+      energy: {
+        name: 'energy',
+        gradient: ['#f093fb', '#f5576c', '#feca57'],
+        cardOpacity: 0.12,
+      },
+      calm: {
+        name: 'calm',
+        gradient: ['#a8edea', '#fed6e3', '#d4fc79'],
+        cardOpacity: 0.1,
+      },
+    };
+
+    const newTheme = themes[themeName] || themes.calm;
+    setCurrentTheme(newTheme);
+
+    const assistantMessage: ChatMessage = {
+      role: 'assistant',
+      content: `✨ Theme changed to ${themeName}! The vibe is now ${themeName === 'dark' ? 'mysterious' : themeName === 'sunset' ? 'warm and cozy' : themeName === 'energy' ? 'electric' : 'peaceful'}.`,
+      timestamp: Date.now(),
+    };
+    setChatHistory((prev) => [...prev, assistantMessage]);
+  };
+
   const handleAddHabit = async (input: string) => {
     if (habits.length >= 7) {
-      setChatHistory((prev) => [...prev, `Vibe Coach: You've reached the maximum of 7 habits. Remove one first to add a new one.`]);
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: "You've reached the maximum of 7 habits. Remove one first to add a new one.",
+        timestamp: Date.now(),
+      };
+      setChatHistory((prev) => [...prev, assistantMessage]);
       return;
     }
 
@@ -210,7 +296,13 @@ export default function HabitTracker() {
     };
 
     setHabits((prev) => [...prev, newHabit]);
-    setChatHistory((prev) => [...prev, `Vibe Coach: ✨ Added "${newHabit.name}" to your habits! Default time is 9:00 AM. Click Edit to change it.`]);
+    const assistantMessage: ChatMessage = {
+      role: 'assistant',
+      content: `✨ Added "${newHabit.name}" to your habits! Default time is 9:00 AM. Click Edit to change it.`,
+      timestamp: Date.now(),
+    };
+    setChatHistory((prev) => [...prev, assistantMessage]);
+    scheduleReminder(newHabit);
   };
 
   const handleRemoveHabit = async (input: string) => {
@@ -221,14 +313,100 @@ export default function HabitTracker() {
 
     if (habitToRemove) {
       setHabits((prev) => prev.filter((h) => h.id !== habitToRemove.id));
-      setChatHistory((prev) => [...prev, `Vibe Coach: 🗑️ Removed "${habitToRemove.name}" from your habits.`]);
+      clearReminder(habitToRemove.id);
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: `🗑️ Removed "${habitToRemove.name}" from your habits.`,
+        timestamp: Date.now(),
+      };
+      setChatHistory((prev) => [...prev, assistantMessage]);
     } else {
-      setChatHistory((prev) => [...prev, `Vibe Coach: I couldn't find that habit. Try being more specific.`]);
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: "I couldn't find that habit. Try being more specific.",
+        timestamp: Date.now(),
+      };
+      setChatHistory((prev) => [...prev, assistantMessage]);
     }
   };
 
+  const scheduleReminder = (habit: Habit) => {
+    // Clear existing reminder for this habit
+    clearReminder(habit.id);
+
+    const scheduleNextReminder = () => {
+      const now = new Date();
+      const [hours, minutes] = habit.time.split(':').map(Number);
+      const habitTime = new Date();
+      habitTime.setHours(hours, minutes, 0, 0);
+
+      // If habit time has passed today, schedule for tomorrow
+      if (habitTime <= now) {
+        habitTime.setDate(habitTime.getDate() + 1);
+      }
+
+      // Calculate reminder time (10 minutes before)
+      const reminderTime = new Date(habitTime.getTime() - 10 * 60 * 1000);
+      const timeUntilReminder = reminderTime.getTime() - now.getTime();
+
+      if (timeUntilReminder > 0) {
+        const timer = setTimeout(() => {
+          if (notificationPermission === 'granted') {
+            const motivations = [
+              `Get ready to ${habit.name.toLowerCase()}! You're building something amazing.`,
+              `${habit.name} is coming up in 10 minutes. You've got this!`,
+              `Time to shine! ${habit.name} starts soon.`,
+              `Your future self will thank you. ${habit.name} in 10 minutes.`,
+              `Let's keep that streak going! ${habit.name} is almost here.`,
+            ];
+            const randomMotivation = motivations[Math.floor(Math.random() * motivations.length)];
+            
+            new Notification('Motivation of the moment', {
+              body: randomMotivation,
+              icon: '🔥',
+            });
+          }
+          // Schedule next reminder for tomorrow
+          scheduleNextReminder();
+        }, timeUntilReminder);
+
+        setReminderTimers((prev) => ({ ...prev, [habit.id]: timer }));
+      }
+    };
+
+    scheduleNextReminder();
+  };
+
+  const clearReminder = (habitId: string) => {
+    if (reminderTimers[habitId]) {
+      clearTimeout(reminderTimers[habitId]);
+      setReminderTimers((prev) => {
+        const newTimers = { ...prev };
+        delete newTimers[habitId];
+        return newTimers;
+      });
+    }
+  };
+
+  // Schedule reminders for all habits on mount and when habits change
+  useEffect(() => {
+    habits.forEach((habit) => {
+      scheduleReminder(habit);
+    });
+
+    return () => {
+      // Clear all reminders on unmount
+      Object.values(reminderTimers).forEach((timer) => clearTimeout(timer));
+    };
+  }, [habits.map(h => h.id + h.time).join(',')]);
+
   const handleScheduleGeneration = async () => {
-    setChatHistory((prev) => [...prev, `Vibe Coach: 🧠 Generating your personalized schedule...`]);
+    const assistantMessage: ChatMessage = {
+      role: 'assistant',
+      content: '🧠 Generating your personalized schedule...',
+      timestamp: Date.now(),
+    };
+    setChatHistory((prev) => [...prev, assistantMessage]);
 
     // Simulate AI processing
     await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -241,6 +419,9 @@ export default function HabitTracker() {
         streak: 0,
         time: '07:00',
         completed: false,
+        why: 'Reduces stress and improves focus throughout the day',
+        how: 'Start with 5 minutes of deep breathing in a quiet space',
+        quote: '"Peace comes from within. Do not seek it without." - Buddha',
       },
       {
         id: Date.now().toString() + '2',
@@ -248,6 +429,9 @@ export default function HabitTracker() {
         streak: 0,
         time: '08:30',
         completed: false,
+        why: 'Expands knowledge and improves cognitive function',
+        how: 'Choose a book that excites you, read without distractions',
+        quote: '"A reader lives a thousand lives before he dies." - George R.R. Martin',
       },
       {
         id: Date.now().toString() + '3',
@@ -255,6 +439,9 @@ export default function HabitTracker() {
         streak: 0,
         time: '18:00',
         completed: false,
+        why: 'Boosts energy, mood, and overall health',
+        how: 'Start with 20 minutes of movement you enjoy',
+        quote: '"The only bad workout is the one that didn\'t happen."',
       },
       {
         id: Date.now().toString() + '4',
@@ -262,6 +449,9 @@ export default function HabitTracker() {
         streak: 0,
         time: '21:00',
         completed: false,
+        why: 'Increases happiness and positive thinking',
+        how: 'Write down 3 things you\'re grateful for each evening',
+        quote: '"Gratitude turns what we have into enough."',
       },
       {
         id: Date.now().toString() + '5',
@@ -269,6 +459,9 @@ export default function HabitTracker() {
         streak: 0,
         time: '12:00',
         completed: false,
+        why: 'Improves energy, skin health, and body function',
+        how: 'Keep a water bottle with you, sip throughout the day',
+        quote: '"Water is the driving force of all nature." - Leonardo da Vinci',
       },
     ];
 
@@ -282,20 +475,27 @@ export default function HabitTracker() {
       '"Every day is a fresh start."',
     ];
 
-    const scheduleMessage = `
-✨ Your personalized 2-week transformation schedule is ready!
+    const scheduleMessage = `✨ Your personalized 2-week transformation schedule is ready!
 
-${generatedHabits.map((h, i) => `
-${i + 1}. **${h.name}** at ${formatTime(h.time)}
-   How: Start small, build gradually
-   Why: Creates lasting positive change
-   ${motivationalQuotes[i] || '"You got this!"'}
+${generatedHabits.map((h, i) => `${i + 1}. **${h.name}** at ${formatTime(h.time)}
+   Why: ${h.why}
+   How: ${h.how}
+   ${h.quote}
 `).join('\n')}
 
-Remember: Focus on progress, not perfection. You've got this! 💪
-    `;
+Remember: Focus on progress, not perfection. You've got this! 💪`;
 
-    setChatHistory((prev) => [...prev, `Vibe Coach: ${scheduleMessage}`]);
+    const resultMessage: ChatMessage = {
+      role: 'assistant',
+      content: scheduleMessage,
+      timestamp: Date.now(),
+    };
+    setChatHistory((prev) => [...prev, resultMessage]);
+
+    // Schedule reminders for all new habits
+    generatedHabits.forEach((habit) => {
+      scheduleReminder(habit);
+    });
   };
 
   const getSuggestedHabit = (habit: Habit) => {
@@ -354,7 +554,14 @@ Remember: Focus on progress, not perfection. You've got this! 💪
   };
 
   return (
-    <div className={`habit-tracker ${themeClass} ${focusedHabitId ? 'focus-mode' : ''}`}>
+    <div 
+      className={`habit-tracker ${themeClass} ${focusedHabitId ? 'focus-mode' : ''}`}
+      style={{
+        background: `linear-gradient(135deg, ${currentTheme.gradient.join(', ')})`,
+        backgroundSize: '400% 400%',
+        animation: 'gradientShift 15s ease infinite',
+      }}
+    >
       {/* Confetti Animation */}
       {confetti.length > 0 && (
         <div className="confetti-container">
@@ -482,7 +689,12 @@ Remember: Focus on progress, not perfection. You've got this! 💪
           <button
             onClick={() => {
               if (habits.length >= 7) {
-                setChatHistory((prev) => [...prev, `Vibe Coach: You've reached the maximum of 7 habits. Remove one first.`]);
+                const assistantMessage: ChatMessage = {
+                  role: 'assistant',
+                  content: "You've reached the maximum of 7 habits. Remove one first.",
+                  timestamp: Date.now(),
+                };
+                setChatHistory((prev) => [...prev, assistantMessage]);
                 return;
               }
               const habitName = prompt('Enter habit name:');
@@ -495,7 +707,13 @@ Remember: Focus on progress, not perfection. You've got this! 💪
                   completed: false,
                 };
                 setHabits((prev) => [...prev, newHabit]);
-                setChatHistory((prev) => [...prev, `Vibe Coach: ✨ Added "${habitName}" to your habits!`]);
+                const assistantMessage: ChatMessage = {
+                  role: 'assistant',
+                  content: `✨ Added "${habitName}" to your habits!`,
+                  timestamp: Date.now(),
+                };
+                setChatHistory((prev) => [...prev, assistantMessage]);
+                scheduleReminder(newHabit);
               }
             }}
             className="management-btn add-btn glass-card-sleek"
@@ -506,7 +724,12 @@ Remember: Focus on progress, not perfection. You've got this! 💪
           <button
             onClick={() => {
               if (habits.length === 0) {
-                setChatHistory((prev) => [...prev, `Vibe Coach: No habits to remove.`]);
+                const assistantMessage: ChatMessage = {
+                  role: 'assistant',
+                  content: 'No habits to remove.',
+                  timestamp: Date.now(),
+                };
+                setChatHistory((prev) => [...prev, assistantMessage]);
                 return;
               }
               const habitNames = habits.map((h, i) => `${i + 1}. ${h.name}`).join('\n');
@@ -516,7 +739,13 @@ Remember: Focus on progress, not perfection. You've got this! 💪
                 if (index >= 0 && index < habits.length) {
                   const removedHabit = habits[index];
                   setHabits((prev) => prev.filter((_, i) => i !== index));
-                  setChatHistory((prev) => [...prev, `Vibe Coach: 🗑️ Removed "${removedHabit.name}".`]);
+                  clearReminder(removedHabit.id);
+                  const assistantMessage: ChatMessage = {
+                    role: 'assistant',
+                    content: `🗑️ Removed "${removedHabit.name}".`,
+                    timestamp: Date.now(),
+                  };
+                  setChatHistory((prev) => [...prev, assistantMessage]);
                 }
               }
             }}
@@ -552,6 +781,12 @@ Remember: Focus on progress, not perfection. You've got this! 💪
                 <div className="habit-header">
                   <div className="habit-title-section">
                     <h3 className="habit-title">{habit.name}</h3>
+                    {(habit.why || habit.how) && (
+                      <div className="habit-description">
+                        {habit.why && <p className="habit-why"><strong>Why:</strong> {habit.why}</p>}
+                        {habit.how && <p className="habit-how"><strong>How:</strong> {habit.how}</p>}
+                      </div>
+                    )}
                     <div className="habit-time-section">
                       {isEditing ? (
                         <>
@@ -606,44 +841,75 @@ Remember: Focus on progress, not perfection. You've got this! 💪
           })}
         </div>
 
-        {/* AI Vibe Coach Chat Interface */}
-        <div className="chat-section glass-card">
-          <h3 className="chat-title">🧠 Vibe Coach</h3>
-          <div className="chat-history">
-            {chatHistory.length === 0 ? (
-              <p className="chat-placeholder">
-                💬 I&apos;m your AI Vibe Coach! Try:
-                <br />• &quot;Add a habit for reading&quot;
-                <br />• &quot;Remove my workout&quot;
-                <br />• &quot;Make me a schedule to be a better person in 2 weeks&quot;
-                <br />• &quot;I just finished my morning workout&quot;
-              </p>
-            ) : (
-              chatHistory.map((msg, idx) => (
-                <p key={idx} className={msg.startsWith('You:') ? 'chat-user slide-in' : 'chat-app slide-in'}>
-                  {msg}
-                </p>
-              ))
-            )}
-          </div>
-          <form onSubmit={handleChatSubmit} className="chat-input-form">
-            <input
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Ask me anything..."
-              className="chat-input glass-input"
-              disabled={isProcessing}
-            />
-            <button type="submit" className="chat-submit glow-button" disabled={isProcessing}>
-              {isProcessing ? '...' : 'Send'}
-            </button>
-          </form>
-        </div>
+        {/* Floating Chat Bubble */}
+        <motion.button
+          className="chat-bubble"
+          onClick={() => setIsChatOpen(!isChatOpen)}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          {isChatOpen ? '✕' : '💬'}
+        </motion.button>
+
+        {/* AI Vibe Coach Chat Panel */}
+        <AnimatePresence>
+          {isChatOpen && (
+            <motion.div
+              className="chat-panel glass-card"
+              initial={{ x: 400, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 400, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            >
+              <h3 className="chat-title">🧠 Vibe Coach</h3>
+              <div className="chat-history">
+                {chatHistory.length === 0 ? (
+                  <p className="chat-placeholder">
+                    💬 I&apos;m your AI Vibe Coach! Try:
+                    <br />• &quot;Add a habit for reading&quot;
+                    <br />• &quot;Make it dark mode&quot;
+                    <br />• &quot;Give me a sunset vibe&quot;
+                    <br />• &quot;Make me a schedule to be a better person&quot;
+                  </p>
+                ) : (
+                  chatHistory.map((msg, idx) => (
+                    <motion.div
+                      key={idx}
+                      className={msg.role === 'user' ? 'chat-user' : 'chat-assistant'}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                    >
+                      <p>{msg.content}</p>
+                      <span className="chat-timestamp">
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+              <form onSubmit={handleChatSubmit} className="chat-input-form">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Ask me anything..."
+                  className="chat-input glass-input"
+                  disabled={isProcessing}
+                />
+                <button type="submit" className="chat-submit glow-button" disabled={isProcessing}>
+                  {isProcessing ? '...' : '→'}
+                </button>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
 }
+
+
 
 
 
