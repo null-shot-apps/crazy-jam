@@ -1,84 +1,192 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 
-const slogans = [
-  "Turn chats into apps",
-  "Prompt. Ship. Repeat.",
-  "Build anything from a chat",
-  "Ideas → Apps, instantly",
-  "From zero to MVP in minutes",
-  "Your cofounder in the command line",
-  "Draft, iterate, deploy",
-  "Ship faster than you can type",
-  "Design in text, deliver in code",
-  "Dream it. Prompt it. Run it.",
-  "Chat-native app building",
-  "From prompt to product",
-  "One prompt, infinite apps",
-  "Stop scaffolding. Start shipping.",
-  "Prototype at the speed of thought",
-  "Make conversations executable"
+type Mood = 'energized' | 'calm' | 'stressed' | 'neutral';
+
+type Habit = {
+  id: string;
+  name: string;
+  streak: number;
+  lastCompleted?: string;
+  alternatives?: { [key in Mood]?: string };
+};
+
+const defaultHabits: Habit[] = [
+  {
+    id: '1',
+    name: 'Morning Workout',
+    streak: 0,
+    alternatives: {
+      stressed: '5-Minute Breathwork',
+      calm: 'Gentle Stretching',
+      energized: 'Intense Workout',
+    },
+  },
+  {
+    id: '2',
+    name: 'Read for 20 minutes',
+    streak: 0,
+    alternatives: {
+      stressed: 'Listen to calming music',
+      calm: 'Read for 20 minutes',
+      energized: 'Learn something new',
+    },
+  },
+  {
+    id: '3',
+    name: 'Drink 8 glasses of water',
+    streak: 0,
+  },
 ];
 
-export default function Landing() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
+export default function HabitTracker() {
+  const [habits, setHabits] = useState<Habit[]>(defaultHabits);
+  const [mood, setMood] = useState<Mood>('neutral');
+  const [chatInput, setChatInput] = useState('');
+  const [chatHistory, setChatHistory] = useState<string[]>([]);
+  const [showMoodPrompt, setShowMoodPrompt] = useState(true);
+
+  // Dynamic theme based on overall streak performance
+  const avgStreak = habits.reduce((sum, h) => sum + h.streak, 0) / habits.length;
+  const themeClass = avgStreak > 5 ? 'theme-warm' : avgStreak > 2 ? 'theme-balanced' : 'theme-cool';
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setIsVisible(false);
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % slogans.length);
-        setIsVisible(true);
-      }, 400);
-    }, 2800);
+    document.body.className = themeClass;
+  }, [themeClass]);
 
-    return () => clearInterval(interval);
-  }, []);
+  const handleMoodSelect = (selectedMood: Mood) => {
+    setMood(selectedMood);
+    setShowMoodPrompt(false);
+  };
+
+  const handleChatSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+
+    const input = chatInput.toLowerCase();
+    let response = "I didn't quite catch that. Try saying something like 'I just finished a 10-minute walk'";
+
+    // Simple NLP-like pattern matching
+    habits.forEach((habit) => {
+      const habitKeywords = habit.name.toLowerCase().split(' ');
+      const matchesHabit = habitKeywords.some((keyword) => input.includes(keyword));
+
+      if (matchesHabit && (input.includes('finished') || input.includes('completed') || input.includes('did') || input.includes('done'))) {
+        setHabits((prev) =>
+          prev.map((h) =>
+            h.id === habit.id
+              ? { ...h, streak: h.streak + 1, lastCompleted: new Date().toISOString() }
+              : h
+          )
+        );
+        response = `🎉 Amazing! Your ${habit.name} streak is now ${habit.streak + 1} days!`;
+      }
+    });
+
+    setChatHistory((prev) => [...prev, `You: ${chatInput}`, `App: ${response}`]);
+    setChatInput('');
+  };
+
+  const getSuggestedHabit = (habit: Habit) => {
+    if (habit.alternatives && habit.alternatives[mood]) {
+      return habit.alternatives[mood];
+    }
+    return habit.name;
+  };
 
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-black text-white">
-      {/* Enhanced animated aurora background layers */}
-      <div className="absolute inset-0 bg-aurora-layer-1" />
-      <div className="absolute inset-0 bg-aurora-layer-2" />
-      <div className="absolute inset-0 bg-aurora-layer-3" />
-      
-      {/* Floating particles overlay */}
-      <div className="absolute inset-0 bg-particles" />
-      
-      {/* Main content - centered */}
-      <main className="relative z-10 h-full flex flex-col items-center justify-center px-6">
-        <h1 className="text-center text-[clamp(28px,6vw,64px)] font-medium tracking-tight mb-4">
-          Turn Chats into Apps
-        </h1>
-        
-        {/* Rotating slogans */}
-        <div className="mt-4 h-8 md:h-10 overflow-hidden flex items-center justify-center">
-          <span
-            className={`inline-block text-center text-[clamp(18px,3vw,32px)] font-light transition-all duration-[400ms] ease-in-out ${
-              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
-            }`}
-          >
-            {slogans[currentIndex]}
-          </span>
+    <div className={`habit-tracker ${themeClass}`}>
+      {/* Mood Prompt Modal */}
+      {showMoodPrompt && (
+        <div className="mood-modal">
+          <div className="mood-content">
+            <h2>How are you feeling today?</h2>
+            <div className="mood-options">
+              <button onClick={() => handleMoodSelect('energized')} className="mood-btn energized">
+                ⚡ Energized
+              </button>
+              <button onClick={() => handleMoodSelect('calm')} className="mood-btn calm">
+                🌊 Calm
+              </button>
+              <button onClick={() => handleMoodSelect('stressed')} className="mood-btn stressed">
+                😰 Stressed
+              </button>
+              <button onClick={() => handleMoodSelect('neutral')} className="mood-btn neutral">
+                😌 Neutral
+              </button>
+            </div>
+          </div>
         </div>
-      </main>
-      
-      {/* Start Prompting arrow pointing left - bottom left */}
-      <div className="absolute left-6 md:left-8 bottom-[5%] z-20 flex items-center gap-3 arrow-point-left">
-        <div className="flex items-center gap-2 text-white/80 font-medium text-sm md:text-base">
-          <svg 
-            className="w-5 h-5 md:w-6 md:h-6 animate-bounce-horizontal" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          <span>Start prompting</span>
+      )}
+
+      {/* Main Content */}
+      <div className="container">
+        <header className="header">
+          <h1>Your Vibe, Your Habits</h1>
+          <button onClick={() => setShowMoodPrompt(true)} className="mood-indicator">
+            Current mood: {mood} ✨
+          </button>
+        </header>
+
+        {/* Habit Cards */}
+        <div className="habits-grid">
+          {habits.map((habit) => {
+            const suggested = getSuggestedHabit(habit);
+            const isAlternative = suggested !== habit.name;
+
+            return (
+              <div key={habit.id} className="habit-card">
+                <div className="habit-header">
+                  <h3>{habit.name}</h3>
+                  <span className="streak-badge">{habit.streak} 🔥</span>
+                </div>
+                {isAlternative && (
+                  <div className="alternative-suggestion">
+                    💡 Try instead: <strong>{suggested}</strong>
+                  </div>
+                )}
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${Math.min(habit.streak * 10, 100)}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Conversational Chat Interface */}
+        <div className="chat-section">
+          <div className="chat-history">
+            {chatHistory.length === 0 ? (
+              <p className="chat-placeholder">
+                💬 Tell me what you've accomplished! Try: "I just finished a 10-minute walk"
+              </p>
+            ) : (
+              chatHistory.map((msg, idx) => (
+                <p key={idx} className={msg.startsWith('You:') ? 'chat-user' : 'chat-app'}>
+                  {msg}
+                </p>
+              ))
+            )}
+          </div>
+          <form onSubmit={handleChatSubmit} className="chat-input-form">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="I just finished..."
+              className="chat-input"
+            />
+            <button type="submit" className="chat-submit">
+              Send
+            </button>
+          </form>
         </div>
       </div>
     </div>
   );
 }
+
