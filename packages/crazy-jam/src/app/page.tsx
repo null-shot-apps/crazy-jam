@@ -42,10 +42,9 @@ const defaultHabits: Habit[] = [
 
 export default function HabitTracker() {
   const [habits, setHabits] = useState<Habit[]>(defaultHabits);
-  const [mood, setMood] = useState<Mood>('neutral');
+  const [mood, setMood] = useState<Mood | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [chatHistory, setChatHistory] = useState<string[]>([]);
-  const [showMoodPrompt, setShowMoodPrompt] = useState(true);
   const [userName] = useState('Friend');
   const [confetti, setConfetti] = useState<{ id: number; x: number; y: number }[]>([]);
 
@@ -84,7 +83,6 @@ export default function HabitTracker() {
 
   const handleMoodSelect = (selectedMood: Mood) => {
     setMood(selectedMood);
-    setShowMoodPrompt(false);
   };
 
   const handleChatSubmit = (e: React.FormEvent) => {
@@ -119,7 +117,7 @@ export default function HabitTracker() {
   };
 
   const getSuggestedHabit = (habit: Habit) => {
-    if (habit.alternatives && habit.alternatives[mood]) {
+    if (mood && habit.alternatives && habit.alternatives[mood]) {
       return habit.alternatives[mood];
     }
     return habit.name;
@@ -145,7 +143,7 @@ export default function HabitTracker() {
       )}
 
       {/* Mood Prompt Modal */}
-      {showMoodPrompt && (
+      {mood === null && (
         <div className="mood-modal">
           <div className="mood-content glass-card">
             <h2>How are you feeling today?</h2>
@@ -174,12 +172,12 @@ export default function HabitTracker() {
           <h1 className="zen-greeting">
             {getGreeting()}, {userName}. {getVibeText()}.
           </h1>
-          <button onClick={() => setShowMoodPrompt(true)} className="mood-indicator glass-card">
+          <button onClick={() => setMood(null)} className="mood-indicator glass-card">
             {mood === 'energized' && '⚡'}
             {mood === 'calm' && '🌊'}
             {mood === 'stressed' && '😰'}
             {mood === 'neutral' && '😌'}
-            <span className="mood-text">{mood}</span>
+            <span className="mood-text">{mood || 'neutral'}</span>
           </button>
         </header>
 
@@ -252,6 +250,11 @@ export default function HabitTracker() {
     </div>
   );
 }
+
+
+
+
+
 
 
 
