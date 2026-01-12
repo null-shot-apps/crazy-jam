@@ -307,6 +307,14 @@ body {
   animation: orbPulse 4s ease-in-out infinite;
 }
 
+.vibe-orb.pulse-fast .orb-inner {
+  animation: orbPulse 1s ease-in-out infinite, orbFloat 2s ease-in-out infinite;
+}
+
+.vibe-orb.pulse-fast .orb-glow {
+  animation: glowPulse 1s ease-in-out infinite;
+}
+
 .orb-label {
   font-size: 1.1rem;
   font-weight: 500;
@@ -352,6 +360,12 @@ body {
   transform: translateY(-4px);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
   border-color: rgba(255, 255, 255, 0.3);
+}
+
+.glass-card-sleek.completed {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 30px var(--orb-glow), 0 12px 36px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .habit-header {
@@ -744,6 +758,8 @@ body {
     font-size: 1.3rem;
   }
 }
+
+
 
 
 

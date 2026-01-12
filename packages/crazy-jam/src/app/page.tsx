@@ -10,6 +10,7 @@ type Habit = {
   streak: number;
   time: string;
   lastCompleted?: string;
+  completed: boolean;
   alternatives?: { [key in Mood]?: string };
 };
 
@@ -18,7 +19,8 @@ const defaultHabits: Habit[] = [
     id: '1',
     name: 'Morning Workout',
     streak: 0,
-    time: '08:00 AM',
+    time: '08:00',
+    completed: false,
     alternatives: {
       stressed: '5-Minute Breathwork',
       calm: 'Gentle Stretching',
@@ -29,7 +31,8 @@ const defaultHabits: Habit[] = [
     id: '2',
     name: 'Read for 20 minutes',
     streak: 0,
-    time: '07:00 PM',
+    time: '19:00',
+    completed: false,
     alternatives: {
       stressed: 'Listen to calming music',
       calm: 'Read for 20 minutes',
@@ -40,7 +43,8 @@ const defaultHabits: Habit[] = [
     id: '3',
     name: 'Drink 8 glasses of water',
     streak: 0,
-    time: '12:00 PM',
+    time: '12:00',
+    completed: false,
   },
 ];
 
@@ -53,6 +57,8 @@ export default function HabitTracker() {
   const [confetti, setConfetti] = useState<{ id: number; x: number; y: number }[]>([]);
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
   const [editingTime, setEditingTime] = useState('');
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [dailyFlow, setDailyFlow] = useState(0);
 
   // Dynamic theme based on overall streak performance
   const avgStreak = habits.reduce((sum, h) => sum + h.streak, 0) / habits.length;
@@ -76,6 +82,44 @@ export default function HabitTracker() {
   useEffect(() => {
     document.body.className = themeClass;
   }, [themeClass]);
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window) {
+      Notification.requestPermission().then((permission) => {
+        setNotificationPermission(permission);
+      });
+    }
+  }, []);
+
+  // Check for habit notifications every minute
+  useEffect(() => {
+    const checkHabitNotifications = () => {
+      const now = new Date();
+      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+      habits.forEach((habit) => {
+        if (habit.time === currentTime && !habit.completed && notificationPermission === 'granted') {
+          new Notification('Time to vibe: ' + habit.name, {
+            icon: '🔥',
+            body: `It's time for your ${habit.name}`,
+          });
+        }
+      });
+    };
+
+    const interval = setInterval(checkHabitNotifications, 60000); // Check every minute
+    checkHabitNotifications(); // Check immediately on mount
+
+    return () => clearInterval(interval);
+  }, [habits, notificationPermission]);
+
+  // Calculate daily flow based on completed habits
+  useEffect(() => {
+    const completedCount = habits.filter((h) => h.completed).length;
+    const newFlow = habits.length > 0 ? (completedCount / habits.length) * 100 : 0;
+    setDailyFlow(newFlow);
+  }, [habits]);
 
   const triggerConfetti = () => {
     const newConfetti = Array.from({ length: 20 }, (_, i) => ({
@@ -142,6 +186,32 @@ export default function HabitTracker() {
     setEditingTime('');
   };
 
+  const handleHabitClick = (habitId: string) => {
+    setHabits((prev) =>
+      prev.map((h) => {
+        if (h.id === habitId) {
+          const newCompleted = !h.completed;
+          const newStreak = newCompleted ? h.streak + 1 : h.streak;
+          
+          if (newCompleted) {
+            triggerConfetti();
+          }
+          
+          return { ...h, completed: newCompleted, streak: newStreak, lastCompleted: new Date().toISOString() };
+        }
+        return h;
+      })
+    );
+  };
+
+  const formatTime = (time24: string) => {
+    const [hours, minutes] = time24.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
   return (
     <div className={`habit-tracker ${themeClass}`}>
       {/* Confetti Animation */}
@@ -202,11 +272,11 @@ export default function HabitTracker() {
 
         {/* Vibe Orb */}
         <div className="vibe-orb-container">
-          <div className={`vibe-orb ${mood}`}>
+          <div className={`vibe-orb ${mood} ${dailyFlow > 50 ? 'pulse-fast' : ''}`}>
             <div className="orb-inner"></div>
             <div className="orb-glow"></div>
           </div>
-          <p className="orb-label daily-flow-text">{Math.round(avgStreak * 10)}% DAILY FLOW</p>
+          <p className="orb-label daily-flow-text">{Math.round(dailyFlow)}% DAILY FLOW</p>
         </div>
 
         {/* Habit Cards */}
@@ -217,7 +287,12 @@ export default function HabitTracker() {
             const isEditing = editingHabitId === habit.id;
 
             return (
-              <div key={habit.id} className="habit-card glass-card-sleek">
+              <div 
+                key={habit.id} 
+                className={`habit-card glass-card-sleek ${habit.completed ? 'completed' : ''}`}
+                onClick={() => handleHabitClick(habit.id)}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="habit-header">
                   <div className="habit-title-section">
                     <h3 className="habit-title">{habit.name}</h3>
@@ -228,10 +303,14 @@ export default function HabitTracker() {
                             type="time"
                             value={editingTime}
                             onChange={(e) => setEditingTime(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
                             className="time-input"
                           />
                           <button
-                            onClick={() => handleSaveTime(habit.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSaveTime(habit.id);
+                            }}
                             className="save-time-btn"
                           >
                             ✓
@@ -239,9 +318,12 @@ export default function HabitTracker() {
                         </>
                       ) : (
                         <>
-                          <span className="habit-time">{habit.time}</span>
+                          <span className="habit-time">{formatTime(habit.time)}</span>
                           <button
-                            onClick={() => handleEditTime(habit.id, habit.time)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditTime(habit.id, habit.time);
+                            }}
                             className="edit-time-btn"
                           >
                             Edit
@@ -300,6 +382,14 @@ export default function HabitTracker() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
 
 
 
