@@ -25,32 +25,47 @@ body {
   transition: background 0.8s ease, color 0.8s ease;
 }
 
-/* Dynamic Theme Classes */
+/* Dynamic Theme Classes with Mesh Gradients */
 .theme-warm {
-  --bg-primary: linear-gradient(135deg, #fff5e6 0%, #ffe4cc 100%);
-  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-primary: radial-gradient(at 20% 30%, #ffcba4 0%, transparent 50%),
+                radial-gradient(at 80% 70%, #ffd4a3 0%, transparent 50%),
+                radial-gradient(at 40% 80%, #ffe4cc 0%, transparent 50%),
+                linear-gradient(135deg, #fff5e6 0%, #ffe8d6 100%);
+  --bg-card: rgba(255, 255, 255, 0.4);
   --accent: #ff6b35;
   --accent-light: #ffb088;
   --text-primary: #2d1810;
   --text-secondary: #6b4423;
+  --orb-color: #ff6b35;
+  --orb-glow: rgba(255, 107, 53, 0.6);
 }
 
 .theme-balanced {
-  --bg-primary: linear-gradient(135deg, #e8f4f8 0%, #d4e8f0 100%);
-  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-primary: radial-gradient(at 30% 20%, #b8e6f5 0%, transparent 50%),
+                radial-gradient(at 70% 80%, #d4e8f0 0%, transparent 50%),
+                radial-gradient(at 50% 50%, #e8f4f8 0%, transparent 50%),
+                linear-gradient(135deg, #e0f2f7 0%, #cfe9f3 100%);
+  --bg-card: rgba(255, 255, 255, 0.35);
   --accent: #4a90e2;
   --accent-light: #7fb3f0;
   --text-primary: #1a3a52;
   --text-secondary: #4a6b85;
+  --orb-color: #4a90e2;
+  --orb-glow: rgba(74, 144, 226, 0.6);
 }
 
 .theme-cool {
-  --bg-primary: linear-gradient(135deg, #e8f0f8 0%, #d0dce8 100%);
-  --bg-card: rgba(255, 255, 255, 0.8);
+  --bg-primary: radial-gradient(at 25% 25%, #c5d9e8 0%, transparent 50%),
+                radial-gradient(at 75% 75%, #d0dce8 0%, transparent 50%),
+                radial-gradient(at 50% 90%, #e0e8f0 0%, transparent 50%),
+                linear-gradient(135deg, #e8f0f8 0%, #d8e4f0 100%);
+  --bg-card: rgba(255, 255, 255, 0.3);
   --accent: #6c8ea8;
   --accent-light: #a3bfd4;
   --text-primary: #2c3e50;
   --text-secondary: #5a6c7d;
+  --orb-color: #6c8ea8;
+  --orb-glow: rgba(108, 142, 168, 0.6);
 }
 
 .habit-tracker {
@@ -58,7 +73,25 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   padding: 2rem 1rem;
-  transition: all 0.8s ease;
+  transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism Base */
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 .container {
@@ -66,32 +99,43 @@ body {
   margin: 0 auto;
 }
 
-.header {
+/* Zen Header */
+.zen-header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
+  animation: fadeSlideDown 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.header h1 {
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 600;
-  margin-bottom: 1rem;
+.zen-greeting {
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  font-weight: 300;
+  margin-bottom: 1.5rem;
   color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.4;
 }
 
 .mood-indicator {
-  background: var(--bg-card);
-  border: 2px solid var(--accent-light);
-  padding: 0.5rem 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.5rem;
   border-radius: 2rem;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--text-primary);
+  border: none;
 }
 
 .mood-indicator:hover {
-  background: var(--accent-light);
-  transform: scale(1.05);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.mood-text {
+  text-transform: capitalize;
+  font-weight: 500;
 }
 
 /* Mood Modal */
@@ -101,21 +145,22 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+  animation: fadeIn 0.3s ease;
 }
 
 .mood-content {
-  background: white;
   padding: 3rem 2rem;
-  border-radius: 1.5rem;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border-radius: 2rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   max-width: 500px;
   width: 90%;
+  animation: scaleIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .mood-content h2 {
@@ -134,17 +179,37 @@ body {
 .mood-btn {
   padding: 1.5rem 1rem;
   border: none;
-  border-radius: 1rem;
+  border-radius: 1.2rem;
   font-size: 1.1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.mood-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.mood-btn:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .mood-btn:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
 }
 
 .mood-btn.energized {
@@ -167,6 +232,58 @@ body {
   color: white;
 }
 
+/* Vibe Orb */
+.vibe-orb-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 3rem 0;
+  animation: fadeIn 1s ease;
+}
+
+.vibe-orb {
+  width: 180px;
+  height: 180px;
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.orb-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, var(--orb-color), var(--accent));
+  animation: orbPulse 3s ease-in-out infinite;
+  box-shadow: 0 0 60px var(--orb-glow);
+}
+
+.orb-glow {
+  position: absolute;
+  top: -20px;
+  left: -20px;
+  right: -20px;
+  bottom: -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--orb-glow) 0%, transparent 70%);
+  animation: glowPulse 3s ease-in-out infinite;
+  z-index: -1;
+}
+
+.vibe-orb.energized .orb-inner {
+  animation: orbPulse 1.5s ease-in-out infinite;
+}
+
+.vibe-orb.stressed .orb-inner {
+  animation: orbPulse 4s ease-in-out infinite;
+}
+
+.orb-label {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
 /* Habits Grid */
 .habits-grid {
   display: grid;
@@ -176,18 +293,15 @@ body {
 }
 
 .habit-card {
-  background: var(--bg-card);
   padding: 1.5rem;
-  border-radius: 1rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  transition: all 0.4s ease;
-  border: 2px solid transparent;
+  border-radius: 1.5rem;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeSlideUp 0.6s ease;
 }
 
 .habit-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  border-color: var(--accent-light);
+  transform: translateY(-8px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
 }
 
 .habit-header {
@@ -224,25 +338,64 @@ body {
 
 .progress-bar {
   width: 100%;
-  height: 8px;
-  background: rgba(0, 0, 0, 0.1);
+  height: 10px;
+  background: rgba(0, 0, 0, 0.08);
   border-radius: 1rem;
   overflow: hidden;
+  position: relative;
 }
 
 .progress-fill {
   height: 100%;
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
   border-radius: 1rem;
-  transition: width 0.6s ease;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.glow-pulse {
+  box-shadow: 0 0 20px var(--orb-glow);
+  animation: progressGlow 2s ease-in-out infinite;
+}
+
+/* Confetti Animation */
+.confetti-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.confetti-particle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: confettiFall 2s ease-out forwards;
+  opacity: 0;
+}
+
+.confetti-particle:nth-child(2n) {
+  background: var(--accent-light);
+  width: 8px;
+  height: 8px;
+}
+
+.confetti-particle:nth-child(3n) {
+  background: var(--orb-color);
+  width: 10px;
+  height: 10px;
 }
 
 /* Chat Section */
 .chat-section {
-  background: var(--bg-card);
-  border-radius: 1.5rem;
+  border-radius: 2rem;
   padding: 2rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  animation: fadeSlideUp 0.8s ease;
 }
 
 .chat-history {
@@ -263,22 +416,30 @@ body {
 }
 
 .chat-user {
-  background: var(--accent-light);
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
   color: white;
   padding: 0.8rem 1.2rem;
-  border-radius: 1rem 1rem 0.2rem 1rem;
+  border-radius: 1.2rem 1.2rem 0.3rem 1.2rem;
   margin-bottom: 0.8rem;
   max-width: 80%;
   margin-left: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .chat-app {
-  background: rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
   color: var(--text-primary);
   padding: 0.8rem 1.2rem;
-  border-radius: 1rem 1rem 1rem 0.2rem;
+  border-radius: 1.2rem 1.2rem 1.2rem 0.3rem;
   margin-bottom: 0.8rem;
   max-width: 80%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.slide-in {
+  animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .chat-input-form {
@@ -289,35 +450,149 @@ body {
 .chat-input {
   flex: 1;
   padding: 1rem 1.5rem;
-  border: 2px solid var(--accent-light);
   border-radius: 2rem;
   font-size: 1rem;
   outline: none;
-  transition: all 0.3s ease;
-  background: white;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--text-primary);
 }
 
 .chat-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+  box-shadow: 0 0 0 3px var(--orb-glow);
+  transform: translateY(-2px);
 }
 
 .chat-submit {
   padding: 1rem 2rem;
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
   color: white;
   border: none;
   border-radius: 2rem;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.chat-submit::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.chat-submit:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .chat-submit:hover {
-  background: var(--accent-light);
-  transform: scale(1.05);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 20px var(--orb-glow);
+}
+
+.glow-button {
+  box-shadow: 0 4px 16px var(--orb-glow);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes orbPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes progressGlow {
+  0%, 100% {
+    box-shadow: 0 0 10px var(--orb-glow);
+  }
+  50% {
+    box-shadow: 0 0 25px var(--orb-glow);
+  }
+}
+
+@keyframes confettiFall {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100vh) rotate(720deg);
+  }
 }
 
 /* Responsive */
@@ -329,5 +604,25 @@ body {
   .habits-grid {
     grid-template-columns: 1fr;
   }
+
+  .vibe-orb {
+    width: 140px;
+    height: 140px;
+  }
+
+  .zen-greeting {
+    font-size: 1.3rem;
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
 

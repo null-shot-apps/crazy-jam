@@ -46,14 +46,41 @@ export default function HabitTracker() {
   const [chatInput, setChatInput] = useState('');
   const [chatHistory, setChatHistory] = useState<string[]>([]);
   const [showMoodPrompt, setShowMoodPrompt] = useState(true);
+  const [userName] = useState('Friend');
+  const [confetti, setConfetti] = useState<{ id: number; x: number; y: number }[]>([]);
 
   // Dynamic theme based on overall streak performance
   const avgStreak = habits.reduce((sum, h) => sum + h.streak, 0) / habits.length;
   const themeClass = avgStreak > 5 ? 'theme-warm' : avgStreak > 2 ? 'theme-balanced' : 'theme-cool';
 
+  // Time-based greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const getVibeText = () => {
+    if (mood === 'energized') return 'The vibe is electric';
+    if (mood === 'calm') return 'The vibe is peaceful';
+    if (mood === 'stressed') return 'The vibe is gentle';
+    return 'The vibe is focused';
+  };
+
   useEffect(() => {
     document.body.className = themeClass;
   }, [themeClass]);
+
+  const triggerConfetti = () => {
+    const newConfetti = Array.from({ length: 20 }, (_, i) => ({
+      id: Date.now() + i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+    }));
+    setConfetti(newConfetti);
+    setTimeout(() => setConfetti([]), 2000);
+  };
 
   const handleMoodSelect = (selectedMood: Mood) => {
     setMood(selectedMood);
@@ -66,6 +93,7 @@ export default function HabitTracker() {
 
     const input = chatInput.toLowerCase();
     let response = "I didn't quite catch that. Try saying something like 'I just finished a 10-minute walk'";
+    let habitCompleted = false;
 
     // Simple NLP-like pattern matching
     habits.forEach((habit) => {
@@ -81,6 +109,8 @@ export default function HabitTracker() {
           )
         );
         response = `🎉 Amazing! Your ${habit.name} streak is now ${habit.streak + 1} days!`;
+        habitCompleted = true;
+        triggerConfetti();
       }
     });
 
@@ -97,10 +127,27 @@ export default function HabitTracker() {
 
   return (
     <div className={`habit-tracker ${themeClass}`}>
+      {/* Confetti Animation */}
+      {confetti.length > 0 && (
+        <div className="confetti-container">
+          {confetti.map((particle) => (
+            <div
+              key={particle.id}
+              className="confetti-particle"
+              style={{
+                left: `${particle.x}%`,
+                top: `${particle.y}%`,
+                animationDelay: `${Math.random() * 0.3}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Mood Prompt Modal */}
       {showMoodPrompt && (
         <div className="mood-modal">
-          <div className="mood-content">
+          <div className="mood-content glass-card">
             <h2>How are you feeling today?</h2>
             <div className="mood-options">
               <button onClick={() => handleMoodSelect('energized')} className="mood-btn energized">
@@ -122,12 +169,28 @@ export default function HabitTracker() {
 
       {/* Main Content */}
       <div className="container">
-        <header className="header">
-          <h1>Your Vibe, Your Habits</h1>
-          <button onClick={() => setShowMoodPrompt(true)} className="mood-indicator">
-            Current mood: {mood} ✨
+        {/* Zen Header */}
+        <header className="zen-header">
+          <h1 className="zen-greeting">
+            {getGreeting()}, {userName}. {getVibeText()}.
+          </h1>
+          <button onClick={() => setShowMoodPrompt(true)} className="mood-indicator glass-card">
+            {mood === 'energized' && '⚡'}
+            {mood === 'calm' && '🌊'}
+            {mood === 'stressed' && '😰'}
+            {mood === 'neutral' && '😌'}
+            <span className="mood-text">{mood}</span>
           </button>
         </header>
+
+        {/* Vibe Orb */}
+        <div className="vibe-orb-container">
+          <div className={`vibe-orb ${mood}`}>
+            <div className="orb-inner"></div>
+            <div className="orb-glow"></div>
+          </div>
+          <p className="orb-label">{Math.round(avgStreak * 10)}% Daily Flow</p>
+        </div>
 
         {/* Habit Cards */}
         <div className="habits-grid">
@@ -136,7 +199,7 @@ export default function HabitTracker() {
             const isAlternative = suggested !== habit.name;
 
             return (
-              <div key={habit.id} className="habit-card">
+              <div key={habit.id} className="habit-card glass-card">
                 <div className="habit-header">
                   <h3>{habit.name}</h3>
                   <span className="streak-badge">{habit.streak} 🔥</span>
@@ -148,7 +211,7 @@ export default function HabitTracker() {
                 )}
                 <div className="progress-bar">
                   <div
-                    className="progress-fill"
+                    className="progress-fill glow-pulse"
                     style={{ width: `${Math.min(habit.streak * 10, 100)}%` }}
                   />
                 </div>
@@ -158,7 +221,7 @@ export default function HabitTracker() {
         </div>
 
         {/* Conversational Chat Interface */}
-        <div className="chat-section">
+        <div className="chat-section glass-card">
           <div className="chat-history">
             {chatHistory.length === 0 ? (
               <p className="chat-placeholder">
@@ -166,7 +229,7 @@ export default function HabitTracker() {
               </p>
             ) : (
               chatHistory.map((msg, idx) => (
-                <p key={idx} className={msg.startsWith('You:') ? 'chat-user' : 'chat-app'}>
+                <p key={idx} className={msg.startsWith('You:') ? 'chat-user slide-in' : 'chat-app slide-in'}>
                   {msg}
                 </p>
               ))
@@ -178,9 +241,9 @@ export default function HabitTracker() {
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               placeholder="I just finished..."
-              className="chat-input"
+              className="chat-input glass-input"
             />
-            <button type="submit" className="chat-submit">
+            <button type="submit" className="chat-submit glow-button">
               Send
             </button>
           </form>
@@ -189,4 +252,9 @@ export default function HabitTracker() {
     </div>
   );
 }
+
+
+
+
+
 
