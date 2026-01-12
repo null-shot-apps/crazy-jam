@@ -167,7 +167,6 @@ export default function HabitTracker() {
     if (!chatInput.trim() || isProcessing) return;
 
     const input = chatInput.trim();
-    const inputLower = input.toLowerCase();
     
     const userMessage: ChatMessage = { role: 'user', content: input, timestamp: Date.now() };
     setChatHistory((prev) => [...prev, userMessage]);
@@ -175,65 +174,102 @@ export default function HabitTracker() {
     setIsProcessing(true);
 
     try {
-      // Check for theme change commands
-      if (inputLower.includes('dark mode') || inputLower.includes('make it dark')) {
-        await handleThemeChange('dark');
-      } else if (inputLower.includes('sunset') || inputLower.includes('sunset vibe')) {
-        await handleThemeChange('sunset');
-      } else if (inputLower.includes('high energy') || inputLower.includes('energetic')) {
-        await handleThemeChange('energy');
-      } else if (inputLower.includes('calm') || inputLower.includes('peaceful')) {
-        await handleThemeChange('calm');
-      } else if (inputLower.includes('add') && inputLower.includes('habit')) {
-        await handleAddHabit(input);
-      } else if (inputLower.includes('remove') && inputLower.includes('habit')) {
-        await handleRemoveHabit(input);
-      } else if (inputLower.includes('schedule') || inputLower.includes('make me')) {
-        await handleScheduleGeneration();
-      } else {
-        // Check for habit completion
-        let habitCompleted = false;
-        habits.forEach((habit) => {
-          const habitKeywords = habit.name.toLowerCase().split(' ');
-          const matchesHabit = habitKeywords.some((keyword) => inputLower.includes(keyword));
+      // Call the LLM API
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: input,
+          conversationHistory: chatHistory,
+          currentHabits: habits.map(h => ({
+            id: h.id,
+            name: h.name,
+            time: h.time,
+            streak: h.streak,
+            completed: h.completed,
+          })),
+        }),
+      });
 
-          if (matchesHabit && (inputLower.includes('finished') || inputLower.includes('completed') || inputLower.includes('did') || inputLower.includes('done'))) {
-            setHabits((prev) =>
-              prev.map((h) =>
-                h.id === habit.id
-                  ? { ...h, streak: h.streak + 1, lastCompleted: new Date().toISOString(), completed: true }
-                  : h
-              )
-            );
-            const assistantMessage: ChatMessage = {
-              role: 'assistant',
-              content: `🎉 Amazing! Your ${habit.name} streak is now ${habit.streak + 1} days!`,
-              timestamp: Date.now(),
-            };
-            setChatHistory((prev) => [...prev, assistantMessage]);
-            habitCompleted = true;
-            triggerConfetti();
-          }
-        });
+      const data = await response.json() as { success: boolean; message: string; actions?: Array<{ type: string; params: any }>; error?: string };
 
-        if (!habitCompleted) {
-          const assistantMessage: ChatMessage = {
-            role: 'assistant',
-            content: `I can help you add/remove habits, change themes, or create a schedule. Try: "Add a habit for reading", "Make it dark mode", or "Make me a schedule to be a better person in 2 weeks"`,
-            timestamp: Date.now(),
-          };
-          setChatHistory((prev) => [...prev, assistantMessage]);
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to get response');
+      }
+
+      // Add AI response to chat
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: data.message,
+        timestamp: Date.now(),
+      };
+      setChatHistory((prev) => [...prev, assistantMessage]);
+
+      // Process any actions the AI wants to take
+      if (data.actions && data.actions.length > 0) {
+        for (const action of data.actions) {
+          await processAIAction(action);
         }
       }
-    } catch {
+    } catch (error) {
+      console.error('Chat error:', error);
       const errorMessage: ChatMessage = {
         role: 'assistant',
-        content: 'Something went wrong. Please try again.',
+        content: 'Sorry, I encountered an error. Please try again.',
         timestamp: Date.now(),
       };
       setChatHistory((prev) => [...prev, errorMessage]);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const processAIAction = async (action: { type: string; params: any }) => {
+    switch (action.type) {
+      case 'addHabit':
+        if (habits.length >= 7) {
+          return;
+        }
+        const newHabit: Habit = {
+          id: Date.now().toString(),
+          name: action.params.title,
+          streak: 0,
+          time: action.params.time || '09:00',
+          completed: false,
+          why: action.params.why,
+          how: action.params.how,
+          quote: action.params.quote,
+        };
+        setHabits((prev) => [...prev, newHabit]);
+        scheduleReminder(newHabit);
+        triggerConfetti();
+        break;
+
+      case 'removeHabit':
+        const habitToRemove = habits.find((h) =>
+          h.name.toLowerCase().includes(action.params.title.toLowerCase())
+        );
+        if (habitToRemove) {
+          setHabits((prev) => prev.filter((h) => h.id !== habitToRemove.id));
+          clearReminder(habitToRemove.id);
+        }
+        break;
+
+      case 'changeTheme':
+        await handleThemeChange(action.params.theme);
+        break;
+
+      case 'generateSchedule':
+        // The AI will generate multiple addHabit actions
+        // Clear existing habits first
+        habits.forEach(h => clearReminder(h.id));
+        setHabits([]);
+        break;
+
+      default:
+        console.log('Unknown action type:', action.type);
     }
   };
 
@@ -259,76 +295,18 @@ export default function HabitTracker() {
         gradient: ['#a8edea', '#fed6e3', '#d4fc79'],
         cardOpacity: 0.1,
       },
+      default: {
+        name: 'default',
+        gradient: ['#E0C3FC', '#8EC5FC', '#F1F2B5'],
+        cardOpacity: 0.1,
+      },
     };
 
-    const newTheme = themes[themeName] || themes.calm;
+    const newTheme = themes[themeName] || themes.default;
     setCurrentTheme(newTheme);
-
-    const assistantMessage: ChatMessage = {
-      role: 'assistant',
-      content: `✨ Theme changed to ${themeName}! The vibe is now ${themeName === 'dark' ? 'mysterious' : themeName === 'sunset' ? 'warm and cozy' : themeName === 'energy' ? 'electric' : 'peaceful'}.`,
-      timestamp: Date.now(),
-    };
-    setChatHistory((prev) => [...prev, assistantMessage]);
   };
 
-  const handleAddHabit = async (input: string) => {
-    if (habits.length >= 7) {
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: "You've reached the maximum of 7 habits. Remove one first to add a new one.",
-        timestamp: Date.now(),
-      };
-      setChatHistory((prev) => [...prev, assistantMessage]);
-      return;
-    }
 
-    // Extract habit name from input
-    const habitMatch = input.match(/add.*?habit.*?for\s+(.+)/i) || input.match(/add\s+(.+)\s+habit/i);
-    const habitName = habitMatch ? habitMatch[1].trim() : 'New Habit';
-
-    const newHabit: Habit = {
-      id: Date.now().toString(),
-      name: habitName.charAt(0).toUpperCase() + habitName.slice(1),
-      streak: 0,
-      time: '09:00',
-      completed: false,
-    };
-
-    setHabits((prev) => [...prev, newHabit]);
-    const assistantMessage: ChatMessage = {
-      role: 'assistant',
-      content: `✨ Added "${newHabit.name}" to your habits! Default time is 9:00 AM. Click Edit to change it.`,
-      timestamp: Date.now(),
-    };
-    setChatHistory((prev) => [...prev, assistantMessage]);
-    scheduleReminder(newHabit);
-  };
-
-  const handleRemoveHabit = async (input: string) => {
-    // Find habit to remove
-    const habitToRemove = habits.find((h) => 
-      input.toLowerCase().includes(h.name.toLowerCase())
-    );
-
-    if (habitToRemove) {
-      setHabits((prev) => prev.filter((h) => h.id !== habitToRemove.id));
-      clearReminder(habitToRemove.id);
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: `🗑️ Removed "${habitToRemove.name}" from your habits.`,
-        timestamp: Date.now(),
-      };
-      setChatHistory((prev) => [...prev, assistantMessage]);
-    } else {
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: "I couldn't find that habit. Try being more specific.",
-        timestamp: Date.now(),
-      };
-      setChatHistory((prev) => [...prev, assistantMessage]);
-    }
-  };
 
   const scheduleReminder = (habit: Habit) => {
     // Clear existing reminder for this habit
@@ -400,103 +378,7 @@ export default function HabitTracker() {
     };
   }, [habits.map(h => h.id + h.time).join(',')]);
 
-  const handleScheduleGeneration = async () => {
-    const assistantMessage: ChatMessage = {
-      role: 'assistant',
-      content: '🧠 Generating your personalized schedule...',
-      timestamp: Date.now(),
-    };
-    setChatHistory((prev) => [...prev, assistantMessage]);
 
-    // Simulate AI processing
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    // Generate habits based on the goal
-    const generatedHabits: Habit[] = [
-      {
-        id: Date.now().toString() + '1',
-        name: 'Morning Meditation',
-        streak: 0,
-        time: '07:00',
-        completed: false,
-        why: 'Reduces stress and improves focus throughout the day',
-        how: 'Start with 5 minutes of deep breathing in a quiet space',
-        quote: '"Peace comes from within. Do not seek it without." - Buddha',
-      },
-      {
-        id: Date.now().toString() + '2',
-        name: 'Read 30 Minutes',
-        streak: 0,
-        time: '08:30',
-        completed: false,
-        why: 'Expands knowledge and improves cognitive function',
-        how: 'Choose a book that excites you, read without distractions',
-        quote: '"A reader lives a thousand lives before he dies." - George R.R. Martin',
-      },
-      {
-        id: Date.now().toString() + '3',
-        name: 'Exercise',
-        streak: 0,
-        time: '18:00',
-        completed: false,
-        why: 'Boosts energy, mood, and overall health',
-        how: 'Start with 20 minutes of movement you enjoy',
-        quote: '"The only bad workout is the one that didn\'t happen."',
-      },
-      {
-        id: Date.now().toString() + '4',
-        name: 'Gratitude Journal',
-        streak: 0,
-        time: '21:00',
-        completed: false,
-        why: 'Increases happiness and positive thinking',
-        how: 'Write down 3 things you\'re grateful for each evening',
-        quote: '"Gratitude turns what we have into enough."',
-      },
-      {
-        id: Date.now().toString() + '5',
-        name: 'Drink 8 Glasses Water',
-        streak: 0,
-        time: '12:00',
-        completed: false,
-        why: 'Improves energy, skin health, and body function',
-        how: 'Keep a water bottle with you, sip throughout the day',
-        quote: '"Water is the driving force of all nature." - Leonardo da Vinci',
-      },
-    ];
-
-    setHabits(generatedHabits);
-    
-    const motivationalQuotes = [
-      '"Small steps lead to big changes."',
-      '"Consistency is the key to transformation."',
-      '"Your future self will thank you."',
-      '"Progress, not perfection."',
-      '"Every day is a fresh start."',
-    ];
-
-    const scheduleMessage = `✨ Your personalized 2-week transformation schedule is ready!
-
-${generatedHabits.map((h, i) => `${i + 1}. **${h.name}** at ${formatTime(h.time)}
-   Why: ${h.why}
-   How: ${h.how}
-   ${h.quote}
-`).join('\n')}
-
-Remember: Focus on progress, not perfection. You've got this! 💪`;
-
-    const resultMessage: ChatMessage = {
-      role: 'assistant',
-      content: scheduleMessage,
-      timestamp: Date.now(),
-    };
-    setChatHistory((prev) => [...prev, resultMessage]);
-
-    // Schedule reminders for all new habits
-    generatedHabits.forEach((habit) => {
-      scheduleReminder(habit);
-    });
-  };
 
   const getSuggestedHabit = (habit: Habit) => {
     if (mood && habit.alternatives && habit.alternatives[mood]) {
@@ -908,6 +790,11 @@ Remember: Focus on progress, not perfection. You've got this! 💪`;
     </div>
   );
 }
+
+
+
+
+
 
 
 
