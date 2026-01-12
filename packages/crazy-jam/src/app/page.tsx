@@ -8,6 +8,7 @@ type Habit = {
   id: string;
   name: string;
   streak: number;
+  time: string;
   lastCompleted?: string;
   alternatives?: { [key in Mood]?: string };
 };
@@ -17,6 +18,7 @@ const defaultHabits: Habit[] = [
     id: '1',
     name: 'Morning Workout',
     streak: 0,
+    time: '08:00 AM',
     alternatives: {
       stressed: '5-Minute Breathwork',
       calm: 'Gentle Stretching',
@@ -27,6 +29,7 @@ const defaultHabits: Habit[] = [
     id: '2',
     name: 'Read for 20 minutes',
     streak: 0,
+    time: '07:00 PM',
     alternatives: {
       stressed: 'Listen to calming music',
       calm: 'Read for 20 minutes',
@@ -37,6 +40,7 @@ const defaultHabits: Habit[] = [
     id: '3',
     name: 'Drink 8 glasses of water',
     streak: 0,
+    time: '12:00 PM',
   },
 ];
 
@@ -47,6 +51,8 @@ export default function HabitTracker() {
   const [chatHistory, setChatHistory] = useState<string[]>([]);
   const [userName] = useState('Friend');
   const [confetti, setConfetti] = useState<{ id: number; x: number; y: number }[]>([]);
+  const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
+  const [editingTime, setEditingTime] = useState('');
 
   // Dynamic theme based on overall streak performance
   const avgStreak = habits.reduce((sum, h) => sum + h.streak, 0) / habits.length;
@@ -123,6 +129,19 @@ export default function HabitTracker() {
     return habit.name;
   };
 
+  const handleEditTime = (habitId: string, currentTime: string) => {
+    setEditingHabitId(habitId);
+    setEditingTime(currentTime);
+  };
+
+  const handleSaveTime = (habitId: string) => {
+    setHabits((prev) =>
+      prev.map((h) => (h.id === habitId ? { ...h, time: editingTime } : h))
+    );
+    setEditingHabitId(null);
+    setEditingTime('');
+  };
+
   return (
     <div className={`habit-tracker ${themeClass}`}>
       {/* Confetti Animation */}
@@ -187,7 +206,7 @@ export default function HabitTracker() {
             <div className="orb-inner"></div>
             <div className="orb-glow"></div>
           </div>
-          <p className="orb-label">{Math.round(avgStreak * 10)}% Daily Flow</p>
+          <p className="orb-label daily-flow-text">{Math.round(avgStreak * 10)}% DAILY FLOW</p>
         </div>
 
         {/* Habit Cards */}
@@ -195,11 +214,42 @@ export default function HabitTracker() {
           {habits.map((habit) => {
             const suggested = getSuggestedHabit(habit);
             const isAlternative = suggested !== habit.name;
+            const isEditing = editingHabitId === habit.id;
 
             return (
-              <div key={habit.id} className="habit-card glass-card">
+              <div key={habit.id} className="habit-card glass-card-sleek">
                 <div className="habit-header">
-                  <h3>{habit.name}</h3>
+                  <div className="habit-title-section">
+                    <h3 className="habit-title">{habit.name}</h3>
+                    <div className="habit-time-section">
+                      {isEditing ? (
+                        <>
+                          <input
+                            type="time"
+                            value={editingTime}
+                            onChange={(e) => setEditingTime(e.target.value)}
+                            className="time-input"
+                          />
+                          <button
+                            onClick={() => handleSaveTime(habit.id)}
+                            className="save-time-btn"
+                          >
+                            ✓
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="habit-time">{habit.time}</span>
+                          <button
+                            onClick={() => handleEditTime(habit.id, habit.time)}
+                            className="edit-time-btn"
+                          >
+                            Edit
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
                   <span className="streak-badge">{habit.streak} 🔥</span>
                 </div>
                 {isAlternative && (
@@ -250,6 +300,12 @@ export default function HabitTracker() {
     </div>
   );
 }
+
+
+
+
+
+
 
 
 

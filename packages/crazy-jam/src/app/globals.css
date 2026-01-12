@@ -99,6 +99,18 @@ body {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
+/* Ultra-Sleek Glassmorphism Cards */
+.glass-card-sleek {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .glass-input {
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(10px);
@@ -119,6 +131,7 @@ body {
 }
 
 .zen-greeting {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: clamp(1.5rem, 4vw, 2.2rem);
   font-weight: 300;
   margin-bottom: 1.5rem;
@@ -301,12 +314,25 @@ body {
   letter-spacing: 0.02em;
 }
 
+.daily-flow-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
 /* Habits Grid */
 .habits-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
   margin-bottom: 3rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .habit-card {
@@ -314,11 +340,18 @@ body {
   border-radius: 1.5rem;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   animation: fadeSlideUp 0.6s ease;
+  width: 100%;
 }
 
 .habit-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+}
+
+.glass-card-sleek:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .habit-header {
@@ -333,6 +366,77 @@ body {
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
+}
+
+.habit-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.habit-title {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.habit-time-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.habit-time {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.edit-time-btn {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.edit-time-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.time-input {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 0.5rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.save-time-btn {
+  font-size: 0.9rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--accent);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  color: white;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.save-time-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px var(--orb-glow);
 }
 
 .streak-badge {
@@ -640,6 +744,12 @@ body {
     font-size: 1.3rem;
   }
 }
+
+
+
+
+
+
 
 
 
