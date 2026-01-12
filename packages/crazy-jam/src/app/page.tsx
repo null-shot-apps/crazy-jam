@@ -61,6 +61,7 @@ export default function HabitTracker() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [dailyFlow, setDailyFlow] = useState(0);
   const [focusedHabitId, setFocusedHabitId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Dynamic theme based on overall streak performance
   const avgStreak = habits.reduce((sum, h) => sum + h.streak, 0) / habits.length;
@@ -139,35 +140,162 @@ export default function HabitTracker() {
     setMood(selectedMood);
   };
 
-  const handleChatSubmit = (e: React.FormEvent) => {
+  const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || isProcessing) return;
 
-    const input = chatInput.toLowerCase();
-    let response = "I didn't quite catch that. Try saying something like 'I just finished a 10-minute walk'";
-    let habitCompleted = false;
-
-    // Simple NLP-like pattern matching
-    habits.forEach((habit) => {
-      const habitKeywords = habit.name.toLowerCase().split(' ');
-      const matchesHabit = habitKeywords.some((keyword) => input.includes(keyword));
-
-      if (matchesHabit && (input.includes('finished') || input.includes('completed') || input.includes('did') || input.includes('done'))) {
-        setHabits((prev) =>
-          prev.map((h) =>
-            h.id === habit.id
-              ? { ...h, streak: h.streak + 1, lastCompleted: new Date().toISOString() }
-              : h
-          )
-        );
-        response = `🎉 Amazing! Your ${habit.name} streak is now ${habit.streak + 1} days!`;
-        habitCompleted = true;
-        triggerConfetti();
-      }
-    });
-
-    setChatHistory((prev) => [...prev, `You: ${chatInput}`, `App: ${response}`]);
+    const input = chatInput.trim();
+    const inputLower = input.toLowerCase();
+    
+    setChatHistory((prev) => [...prev, `You: ${input}`]);
     setChatInput('');
+    setIsProcessing(true);
+
+    try {
+      // Check for habit management commands
+      if (inputLower.includes('add') && inputLower.includes('habit')) {
+        await handleAddHabit(input);
+      } else if (inputLower.includes('remove') && inputLower.includes('habit')) {
+        await handleRemoveHabit(input);
+      } else if (inputLower.includes('schedule') || inputLower.includes('make me')) {
+        await handleScheduleGeneration(input);
+      } else {
+        // Check for habit completion
+        let habitCompleted = false;
+        habits.forEach((habit) => {
+          const habitKeywords = habit.name.toLowerCase().split(' ');
+          const matchesHabit = habitKeywords.some((keyword) => inputLower.includes(keyword));
+
+          if (matchesHabit && (inputLower.includes('finished') || inputLower.includes('completed') || inputLower.includes('did') || inputLower.includes('done'))) {
+            setHabits((prev) =>
+              prev.map((h) =>
+                h.id === habit.id
+                  ? { ...h, streak: h.streak + 1, lastCompleted: new Date().toISOString(), completed: true }
+                  : h
+              )
+            );
+            setChatHistory((prev) => [...prev, `Vibe Coach: 🎉 Amazing! Your ${habit.name} streak is now ${habit.streak + 1} days!`]);
+            habitCompleted = true;
+            triggerConfetti();
+          }
+        });
+
+        if (!habitCompleted) {
+          setChatHistory((prev) => [...prev, `Vibe Coach: I can help you add/remove habits or create a schedule. Try: "Add a habit for reading" or "Make me a schedule to be a better person in 2 weeks"`]);
+        }
+      }
+    } catch {
+      setChatHistory((prev) => [...prev, `Vibe Coach: Something went wrong. Please try again.`]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleAddHabit = async (input: string) => {
+    if (habits.length >= 7) {
+      setChatHistory((prev) => [...prev, `Vibe Coach: You've reached the maximum of 7 habits. Remove one first to add a new one.`]);
+      return;
+    }
+
+    // Extract habit name from input
+    const habitMatch = input.match(/add.*?habit.*?for\s+(.+)/i) || input.match(/add\s+(.+)\s+habit/i);
+    const habitName = habitMatch ? habitMatch[1].trim() : 'New Habit';
+
+    const newHabit: Habit = {
+      id: Date.now().toString(),
+      name: habitName.charAt(0).toUpperCase() + habitName.slice(1),
+      streak: 0,
+      time: '09:00',
+      completed: false,
+    };
+
+    setHabits((prev) => [...prev, newHabit]);
+    setChatHistory((prev) => [...prev, `Vibe Coach: ✨ Added "${newHabit.name}" to your habits! Default time is 9:00 AM. Click Edit to change it.`]);
+  };
+
+  const handleRemoveHabit = async (input: string) => {
+    // Find habit to remove
+    const habitToRemove = habits.find((h) => 
+      input.toLowerCase().includes(h.name.toLowerCase())
+    );
+
+    if (habitToRemove) {
+      setHabits((prev) => prev.filter((h) => h.id !== habitToRemove.id));
+      setChatHistory((prev) => [...prev, `Vibe Coach: 🗑️ Removed "${habitToRemove.name}" from your habits.`]);
+    } else {
+      setChatHistory((prev) => [...prev, `Vibe Coach: I couldn't find that habit. Try being more specific.`]);
+    }
+  };
+
+  const handleScheduleGeneration = async () => {
+    setChatHistory((prev) => [...prev, `Vibe Coach: 🧠 Generating your personalized schedule...`]);
+
+    // Simulate AI processing
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    // Generate habits based on the goal
+    const generatedHabits: Habit[] = [
+      {
+        id: Date.now().toString() + '1',
+        name: 'Morning Meditation',
+        streak: 0,
+        time: '07:00',
+        completed: false,
+      },
+      {
+        id: Date.now().toString() + '2',
+        name: 'Read 30 Minutes',
+        streak: 0,
+        time: '08:30',
+        completed: false,
+      },
+      {
+        id: Date.now().toString() + '3',
+        name: 'Exercise',
+        streak: 0,
+        time: '18:00',
+        completed: false,
+      },
+      {
+        id: Date.now().toString() + '4',
+        name: 'Gratitude Journal',
+        streak: 0,
+        time: '21:00',
+        completed: false,
+      },
+      {
+        id: Date.now().toString() + '5',
+        name: 'Drink 8 Glasses Water',
+        streak: 0,
+        time: '12:00',
+        completed: false,
+      },
+    ];
+
+    setHabits(generatedHabits);
+    
+    const motivationalQuotes = [
+      '"Small steps lead to big changes."',
+      '"Consistency is the key to transformation."',
+      '"Your future self will thank you."',
+      '"Progress, not perfection."',
+      '"Every day is a fresh start."',
+    ];
+
+    const scheduleMessage = `
+✨ Your personalized 2-week transformation schedule is ready!
+
+${generatedHabits.map((h, i) => `
+${i + 1}. **${h.name}** at ${formatTime(h.time)}
+   How: Start small, build gradually
+   Why: Creates lasting positive change
+   ${motivationalQuotes[i] || '"You got this!"'}
+`).join('\n')}
+
+Remember: Focus on progress, not perfection. You've got this! 💪
+    `;
+
+    setChatHistory((prev) => [...prev, `Vibe Coach: ${scheduleMessage}`]);
   };
 
   const getSuggestedHabit = (habit: Habit) => {
@@ -349,6 +477,56 @@ export default function HabitTracker() {
           <p className="orb-label daily-flow-text">{Math.round(dailyFlow)}% DAILY FLOW</p>
         </div>
 
+        {/* Habit Management Buttons */}
+        <div className="habit-management">
+          <button
+            onClick={() => {
+              if (habits.length >= 7) {
+                setChatHistory((prev) => [...prev, `Vibe Coach: You've reached the maximum of 7 habits. Remove one first.`]);
+                return;
+              }
+              const habitName = prompt('Enter habit name:');
+              if (habitName) {
+                const newHabit: Habit = {
+                  id: Date.now().toString(),
+                  name: habitName,
+                  streak: 0,
+                  time: '09:00',
+                  completed: false,
+                };
+                setHabits((prev) => [...prev, newHabit]);
+                setChatHistory((prev) => [...prev, `Vibe Coach: ✨ Added "${habitName}" to your habits!`]);
+              }
+            }}
+            className="management-btn add-btn glass-card-sleek"
+            disabled={habits.length >= 7}
+          >
+            + Add Habit
+          </button>
+          <button
+            onClick={() => {
+              if (habits.length === 0) {
+                setChatHistory((prev) => [...prev, `Vibe Coach: No habits to remove.`]);
+                return;
+              }
+              const habitNames = habits.map((h, i) => `${i + 1}. ${h.name}`).join('\n');
+              const habitIndex = prompt(`Select habit to remove:\n${habitNames}\n\nEnter number:`);
+              if (habitIndex) {
+                const index = parseInt(habitIndex) - 1;
+                if (index >= 0 && index < habits.length) {
+                  const removedHabit = habits[index];
+                  setHabits((prev) => prev.filter((_, i) => i !== index));
+                  setChatHistory((prev) => [...prev, `Vibe Coach: 🗑️ Removed "${removedHabit.name}".`]);
+                }
+              }
+            }}
+            className="management-btn remove-btn glass-card-sleek"
+            disabled={habits.length === 0}
+          >
+            - Remove Habit
+          </button>
+        </div>
+
         {/* Habit Cards */}
         <div className="habits-grid">
           {habits.map((habit, index) => {
@@ -428,12 +606,17 @@ export default function HabitTracker() {
           })}
         </div>
 
-        {/* Conversational Chat Interface */}
+        {/* AI Vibe Coach Chat Interface */}
         <div className="chat-section glass-card">
+          <h3 className="chat-title">🧠 Vibe Coach</h3>
           <div className="chat-history">
             {chatHistory.length === 0 ? (
               <p className="chat-placeholder">
-                💬 Tell me what you've accomplished! Try: "I just finished a 10-minute walk"
+                💬 I&apos;m your AI Vibe Coach! Try:
+                <br />• &quot;Add a habit for reading&quot;
+                <br />• &quot;Remove my workout&quot;
+                <br />• &quot;Make me a schedule to be a better person in 2 weeks&quot;
+                <br />• &quot;I just finished my morning workout&quot;
               </p>
             ) : (
               chatHistory.map((msg, idx) => (
@@ -448,11 +631,12 @@ export default function HabitTracker() {
               type="text"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              placeholder="I just finished..."
+              placeholder="Ask me anything..."
               className="chat-input glass-input"
+              disabled={isProcessing}
             />
-            <button type="submit" className="chat-submit glow-button">
-              Send
+            <button type="submit" className="chat-submit glow-button" disabled={isProcessing}>
+              {isProcessing ? '...' : 'Send'}
             </button>
           </form>
         </div>
@@ -460,6 +644,13 @@ export default function HabitTracker() {
     </div>
   );
 }
+
+
+
+
+
+
+
 
 
 

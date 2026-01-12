@@ -906,6 +906,77 @@ body {
   }
 }
 
+/* Habit Management Buttons */
+.habit-management {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+.management-btn {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.management-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.management-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-btn {
+  background: linear-gradient(135deg, rgba(76, 217, 100, 0.2), rgba(52, 199, 89, 0.2));
+  border-color: rgba(76, 217, 100, 0.3);
+}
+
+.add-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(76, 217, 100, 0.3), rgba(52, 199, 89, 0.3));
+  border-color: rgba(76, 217, 100, 0.5);
+}
+
+.remove-btn {
+  background: linear-gradient(135deg, rgba(255, 59, 48, 0.2), rgba(255, 45, 85, 0.2));
+  border-color: rgba(255, 59, 48, 0.3);
+}
+
+.remove-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(255, 59, 48, 0.3), rgba(255, 45, 85, 0.3));
+  border-color: rgba(255, 59, 48, 0.5);
+}
+
+/* Chat Title */
+.chat-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Chat Placeholder Updates */
+.chat-placeholder {
+  text-align: left;
+  line-height: 1.8;
+  font-size: 0.95rem;
+}
+
+
 
 
 
