@@ -25,13 +25,21 @@ body {
   transition: background 0.8s ease, color 0.8s ease;
 }
 
-/* Dynamic Theme Classes with Mesh Gradients */
+/* Dynamic Theme Classes with Animated Mesh Gradients */
+@keyframes meshMove {
+  0%, 100% {
+    background-position: 0% 50%, 100% 50%, 50% 100%;
+  }
+  50% {
+    background-position: 100% 50%, 0% 50%, 50% 0%;
+  }
+}
+
 .theme-warm {
-  --bg-primary: radial-gradient(at 20% 30%, #ffcba4 0%, transparent 50%),
-                radial-gradient(at 80% 70%, #ffd4a3 0%, transparent 50%),
-                radial-gradient(at 40% 80%, #ffe4cc 0%, transparent 50%),
-                linear-gradient(135deg, #fff5e6 0%, #ffe8d6 100%);
-  --bg-card: rgba(255, 255, 255, 0.4);
+  --bg-primary: #E0C3FC;
+  --bg-secondary: #8EC5FC;
+  --bg-tertiary: #F1F2B5;
+  --bg-card: rgba(255, 255, 255, 0.15);
   --accent: #ff6b35;
   --accent-light: #ffb088;
   --text-primary: #2d1810;
@@ -41,11 +49,10 @@ body {
 }
 
 .theme-balanced {
-  --bg-primary: radial-gradient(at 30% 20%, #b8e6f5 0%, transparent 50%),
-                radial-gradient(at 70% 80%, #d4e8f0 0%, transparent 50%),
-                radial-gradient(at 50% 50%, #e8f4f8 0%, transparent 50%),
-                linear-gradient(135deg, #e0f2f7 0%, #cfe9f3 100%);
-  --bg-card: rgba(255, 255, 255, 0.35);
+  --bg-primary: #E0C3FC;
+  --bg-secondary: #8EC5FC;
+  --bg-tertiary: #F1F2B5;
+  --bg-card: rgba(255, 255, 255, 0.15);
   --accent: #4a90e2;
   --accent-light: #7fb3f0;
   --text-primary: #1a3a52;
@@ -55,11 +62,10 @@ body {
 }
 
 .theme-cool {
-  --bg-primary: radial-gradient(at 25% 25%, #c5d9e8 0%, transparent 50%),
-                radial-gradient(at 75% 75%, #d0dce8 0%, transparent 50%),
-                radial-gradient(at 50% 90%, #e0e8f0 0%, transparent 50%),
-                linear-gradient(135deg, #e8f0f8 0%, #d8e4f0 100%);
-  --bg-card: rgba(255, 255, 255, 0.3);
+  --bg-primary: #E0C3FC;
+  --bg-secondary: #8EC5FC;
+  --bg-tertiary: #F1F2B5;
+  --bg-card: rgba(255, 255, 255, 0.15);
   --accent: #6c8ea8;
   --accent-light: #a3bfd4;
   --text-primary: #2c3e50;
@@ -70,7 +76,13 @@ body {
 
 .habit-tracker {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: 
+    radial-gradient(circle at 20% 30%, var(--bg-primary) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, var(--bg-secondary) 0%, transparent 50%),
+    radial-gradient(circle at 50% 90%, var(--bg-tertiary) 0%, transparent 50%),
+    linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
+  background-size: 200% 200%, 200% 200%, 200% 200%, 100% 100%;
+  animation: meshMove 15s ease-in-out infinite;
   color: var(--text-primary);
   padding: 2rem 1rem;
   transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -83,7 +95,7 @@ body {
   background: var(--bg-card);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
@@ -253,8 +265,13 @@ body {
   height: 100%;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, var(--orb-color), var(--accent));
-  animation: orbPulse 3s ease-in-out infinite;
-  box-shadow: 0 0 60px var(--orb-glow);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: orbPulse 3s ease-in-out infinite, orbFloat 4s ease-in-out infinite;
+  box-shadow: 
+    inset 0 0 40px rgba(255, 255, 255, 0.5),
+    0 0 60px var(--orb-glow),
+    0 20px 40px rgba(0, 0, 0, 0.2);
 }
 
 .orb-glow {
@@ -566,6 +583,15 @@ body {
   }
 }
 
+@keyframes orbFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
 @keyframes glowPulse {
   0%, 100% {
     opacity: 0.6;
@@ -614,6 +640,7 @@ body {
     font-size: 1.3rem;
   }
 }
+
 
 
 
